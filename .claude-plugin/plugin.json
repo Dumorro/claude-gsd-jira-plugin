@@ -1,0 +1,13 @@
+{
+  "name": "claude-gsd-jira-plugin",
+  "version": "1.0.0",
+  "description": "Sync GSD workflow state to Jira — automatic card creation, status transitions, and Kanban board management",
+  "author": {
+    "name": "Thiago Dumorro",
+    "url": "https://github.com/Dumorro"
+  },
+  "repository": "https://github.com/Dumorro/claude-gsd-jira-plugin",
+  "license": "MIT",
+  "keywords": ["gsd", "jira", "kanban", "project-management", "automation"],
+  "claude_code_version": ">=2.0.0"
+}
