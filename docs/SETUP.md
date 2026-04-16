@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Claude Code** installed and configured
-- **GSD** (Get Stuff Done) workflow active in your project (`.planning/` directories)
+- **[GSD (Get Shit Done)](https://github.com/gsd-build/get-shit-done)** workflow active in your project (`.planning/` directories)
 - **Jira Cloud** instance with project admin access
 - **Python 3.8+** (for `enrich-cards.py`)
 - **Node.js 18+** (for the PostToolUse hook)

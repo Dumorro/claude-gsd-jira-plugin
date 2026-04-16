@@ -2,7 +2,7 @@
 
 ## Overview
 
-The plugin bridges GSD (Get Stuff Done) planning artifacts with Jira project management through a three-stage pipeline: **Hook -> Queue -> Sync**.
+The plugin bridges [GSD (Get Shit Done)](https://github.com/gsd-build/get-shit-done) planning artifacts with Jira project management through a three-stage pipeline: **Hook -> Queue -> Sync**.
 
 ```
 .planning/ file write

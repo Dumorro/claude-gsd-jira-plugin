@@ -1,6 +1,6 @@
 # claude-gsd-jira-plugin
 
-Bridges GSD (Get Stuff Done) planning artifacts with Jira Cloud. A PostToolUse hook detects GSD lifecycle events (milestone creation, phase transitions, plan authoring, verification) as they happen in Claude Code, enqueues them locally, and syncs them to a 6-column Kanban board in Jira -- automatically creating Epics, Features, and Subtasks that mirror your `.planning/` directory structure.
+Jira integration for [GSD (Get Shit Done)](https://github.com/gsd-build/get-shit-done) projects in Claude Code. A PostToolUse hook detects GSD lifecycle events (milestone creation, phase transitions, plan authoring, verification) as they happen, enqueues them locally, and syncs them to a 6-column Kanban board in Jira -- automatically creating Epics, Features, and Subtasks that mirror your `.planning/` directory structure.
 
 ## Quick Start
 
@@ -74,7 +74,7 @@ Bridges GSD (Get Stuff Done) planning artifacts with Jira Cloud. A PostToolUse h
 
 ## Requirements
 
-- Claude Code with GSD workflow
+- [GSD (Get Shit Done)](https://github.com/gsd-build/get-shit-done) workflow active in your project
 - Jira Cloud (API v3)
 - Node.js 18+
 - Python 3.8+
