@@ -198,7 +198,7 @@ function detectStateEvents(content, repo) {
 }
 
 function makePlanEvent(filePath, fileName, repo) {
-  const planMatch = fileName.match(/^(\d+(?:\.\d+)?)-.*?-(\d+)-PLAN\.md$/);
+  const planMatch = fileName.match(/^(\d+(?:\.\d+)?)-(\d+)(?:-.*?)?-PLAN\.md$/);
   const phase = planMatch ? planMatch[1] : 'unknown';
   const planNum = planMatch ? planMatch[2] : '01';
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1] - 2026-04-17
+
+Post-Phase 44 re-verification patch. Plan `44-08-PLAN.md` (gap-closure G-05) surfaced a parser bug: the `plans_created` event landed in the queue with `phase: "unknown"` and `plan: "01"`, causing `/jira-sync` to skip subtask creation.
+
+### Fixed
+- **`hooks/gsd-jira-watch.js` plan filename regex** — the previous pattern `^(\d+(?:\.\d+)?)-.*?-(\d+)-PLAN\.md$` required a middle segment between phase and plan numbers (e.g., `44-01-iam-foundation-PLAN.md`). Short-form filenames like `44-08-PLAN.md` (no middle) fell through to the `unknown`/`01` fallback. New regex `^(\d+(?:\.\d+)?)-(\d+)(?:-.*?)?-PLAN\.md$` makes the middle segment optional — works with both forms (`44-08-PLAN.md` and `44-01-iam-foundation-PLAN.md`) and preserves decimal-phase support (`72.1-03-PLAN.md`).
+
 ## [1.2.0] - 2026-04-17
 
 Post-Phase 44 hardening. Phase 44 Foundation & Safety was the first phase where a real (non-no-op) execution ran end-to-end. Two issues surfaced that this release addresses.
