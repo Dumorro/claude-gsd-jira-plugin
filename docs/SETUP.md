@@ -108,6 +108,33 @@ python3 scripts/enrich-cards.py            # Execute
 
 Populates card descriptions with structured content (goals, requirements, success criteria) extracted from your `.planning/` files.
 
+### 5. Install Git Commit Hooks (Traceability)
+
+After `data/jira-mapping.json` is populated by `/jira-seed`, install per-repo git hooks that auto-prefix every commit with the active Jira issue key:
+
+```
+/jira-install-git-hooks            # Install in current repo
+/jira-install-git-hooks --all      # Install in every detected GSD repo
+/jira-install-git-hooks --uninstall
+```
+
+Or directly:
+
+```bash
+./scripts/install-git-hooks.sh /path/to/target-repo
+./scripts/setup.sh --install-git-hooks   # Install into every detected repo during setup
+```
+
+The hooks live in `.git/hooks/` and shell out to `hooks/prepare-commit-msg.js` + `hooks/commit-msg.js` in the plugin. They read `.planning/STATE.md` + `data/jira-mapping.json` at commit time (no Jira API calls), so they run in <100ms.
+
+**Strict mode** — reject any commit without a Jira key:
+
+```bash
+export GSD_JIRA_STRICT=1
+```
+
+**Projects using husky/lefthook** — install writes to `.git/hooks/` directly; if your project routes hooks through husky, invoke `node "${CLAUDE_PLUGIN_ROOT}/hooks/prepare-commit-msg.js" "$@"` from your husky hook file instead.
+
 ## Troubleshooting
 
 ### "ERROR: JIRA_HOST is not set"

@@ -135,6 +135,44 @@ Extracted from `*-PLAN.md`:
 4. **Queue processing is atomic per event.** Each event is processed independently. Failed events remain in the queue for retry.
 5. **Enrichment is idempotent.** Running `enrich-cards.py` multiple times overwrites descriptions with the latest content from `.planning/` files.
 
+## Git Commit Traceability
+
+Two optional git hooks installed per repo close the traceability loop between source code and Jira:
+
+```
+   git commit
+       |
+       v
+[prepare-commit-msg]  hooks/prepare-commit-msg.js
+   |  resolve-active-card (STATE.md + ROADMAP.md + data/jira-mapping.json)
+   |  if no key in msg -> prefix "PROJ-NNN: "
+   v
+[commit-msg]          hooks/commit-msg.js
+   |  if active phase + no key:  strict -> reject; else -> warn
+   v
+   commit written
+```
+
+### Resolution precedence
+
+`hooks/lib/resolve-active-card.js` walks the mapping from most-specific to least:
+
+1. `{repo}/{version}/{phase-slug}/plan-{NN}` — Subtask
+2. `{repo}/{version}/{phase-slug}` — Feature (fallback when plan cannot be determined)
+3. `{repo}/{version}` — Epic (fallback when phase slug is missing)
+4. `null` — hook is silent; commit proceeds unchanged
+
+The current phase comes from `.planning/STATE.md` (`stopped_at: Phase N`). The current plan is detected by scanning `git diff --cached --name-only` for staged `*-PLAN.md` files or paths under `plan-NN/`; if nothing matches, the resolver falls back to the phase level.
+
+### Modes
+
+- **Default** — `prepare-commit-msg` auto-prefixes; `commit-msg` warns when in an active phase without a key but never blocks.
+- **Strict** — `GSD_JIRA_STRICT=1` makes `commit-msg` exit non-zero for any commit without a Jira key.
+
+### Installation
+
+`scripts/install-git-hooks.sh <target-repo>` writes shims to `.git/hooks/` delimited by `# BEGIN gsd-jira` / `# END gsd-jira`. Pre-existing hooks are preserved; the installer replaces only the gsd-jira block. Symmetric removal via `scripts/uninstall-git-hooks.sh`.
+
 ## Cache Files
 
 Located in `data/`:

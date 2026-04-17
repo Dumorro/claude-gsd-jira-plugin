@@ -74,20 +74,31 @@ For each repo discovered in Step 3:
 ### If queue mode (default):
 Process each event in `data/jira-queue.json` in order:
 
-| Event | Jira Action |
-|-------|-------------|
-| `milestone_created` | Create **Epic**: `[{repo}] {version} -- {name}` |
-| `phase_added` | Create **Feature**: `Phase {N}: {name}`, link to Epic -> **Backlog** |
-| `plans_created` | Create **Subtask**: `{phase}-{plan}: {objective}`, link to Feature |
-| `phase_planning` | Transition Feature -> **Planejamento** |
-| `phase_ready` | Transition Feature -> **Pronto** |
-| `phase_executing` | Transition Feature -> **Executando** |
-| `phase_verifying` | Transition Feature -> **Verificacao** |
-| `phase_completed` | Transition Feature -> **Concluido** |
-| `phase_verified` | If status=passed: Feature -> **Concluido**. If gaps_found: add comment with gaps, stay in **Verificacao** |
-| `milestone_completed` | Transition Epic -> **Concluido** |
+| Event | Action on Feature | **Cascade on all child Subtasks** |
+|-------|-------------------|-----------------------------------|
+| `milestone_created` | Create **Epic**: `[{repo}] {version} -- {name}` | — |
+| `phase_added` | Create **Feature**: `Phase {N}: {name}`, link to Epic -> **Backlog** | — |
+| `plans_created` | Create **Subtask**: `{phase}-{plan}: {objective}`, link to Feature | — (this IS the subtask creation) |
+| `phase_planning` | Transition Feature -> **Planejamento** | — (no cascade; subtasks stay in Backlog until execution) |
+| `phase_ready` | Transition Feature -> **Pronto** | — |
+| `phase_executing` | Transition Feature -> **Executando** | **Transition every Backlog subtask -> Executando** |
+| `phase_verifying` | Transition Feature -> **Verificacao** | — (subtasks keep their state until phase result) |
+| `phase_completed` | Transition Feature -> **Concluido** | **Transition every non-Concluido subtask -> Concluido** |
+| `phase_verified` | If status=passed: Feature -> **Concluido**. If gaps_found: add comment with gaps, stay in **Verificacao** | If passed: **Transition every non-Concluido subtask -> Concluido**. If gaps_found: — |
+| `milestone_completed` | Transition Epic -> **Concluido** | — (subtasks already closed via phase_completed/phase_verified) |
 
 All transition IDs are read from `data/jira-config.json`. If the config file is missing, discover transitions via API first (see Step 2).
+
+### Subtask cascade rationale
+
+Observed failure in **Phase 44 Foundation & Safety** (core-api, 2026-04-17): all 7 subtasks stayed in **Backlog** after the phase shipped, because the original skill only transitioned the Feature. Operators had to transition each subtask manually via Jira MCP.
+
+The cascade pattern above mirrors reality: when a phase enters execution, its plans are being worked on; when a phase is verified passed, its plans are done. Subtasks should reflect the parent Feature's state automatically.
+
+**Rules for the cascade:**
+- Only cascade to subtasks whose label includes `gsd-managed` (do not touch manually-created subtasks).
+- Only move **forward** in the lifecycle (never re-open a `Concluido` subtask).
+- If any subtask transition fails, log the error and continue — do not abort the whole sync.
 
 ## Step 4.5: Build Card Description (ADF)
 
@@ -201,6 +212,33 @@ curl -s -X POST "${JIRA_HOST}/rest/api/3/issue/{key}/transitions" \
 ### Link Feature to Epic
 Use the Epic Link field (discover via `/rest/api/3/field` -- typically `customfield_10014`).
 
+### List Subtasks of a Feature (for cascade)
+
+When processing `phase_executing`, `phase_completed`, or `phase_verified:passed`, list the Feature's subtasks and transition each one:
+
+```bash
+FEATURE_KEY="PIB-401"
+TARGET_TRANSITION=$(cat data/jira-config.json | jq -r '.transitions.concluido.transitionId')
+AUTH="$(echo -n "${JIRA_USERNAME}:${JIRA_API_TOKEN}" | base64)"
+
+# JQL: parent=<feature> AND labels=gsd-managed — do not touch manually-created subtasks
+SUBTASK_KEYS=$(curl -s -G "${JIRA_HOST}/rest/api/3/search" \
+  --data-urlencode "jql=parent=${FEATURE_KEY} AND labels=gsd-managed" \
+  --data-urlencode "fields=status" \
+  -H "Authorization: Basic ${AUTH}" \
+  | jq -r '.issues[] | select(.fields.status.name != "Concluido") | .key')
+
+for KEY in ${SUBTASK_KEYS}; do
+  curl -s -X POST "${JIRA_HOST}/rest/api/3/issue/${KEY}/transitions" \
+    -H "Authorization: Basic ${AUTH}" \
+    -H "Content-Type: application/json" \
+    -d "{\"transition\": {\"id\": \"${TARGET_TRANSITION}\"}}" \
+    || echo "WARN: failed to transition ${KEY} (continuing)"
+done
+```
+
+Only transition subtasks that are **not already** in the target state (see Idempotency Rules below).
+
 ## Step 6: Update Mapping
 
 After each successful create:
@@ -286,5 +324,28 @@ Common mappings (customize in `data/jira-config.json` `repoLabels` if needed):
 | *-pwa, *-web, *-frontend | `frontend` |
 | *-infra, *-terraform, *-iac | `infra` |
 | (other) | directory name |
+
+## Step 9: MCP fallback (optional, v1.2.0+)
+
+If the Claude Code session has the **Atlassian MCP server** loaded and authenticated (`mcp__atlassian__*` tools available), you can use those tools instead of `curl` + env vars. This is useful when:
+
+- `JIRA_HOST` / `JIRA_USERNAME` / `JIRA_API_TOKEN` env vars are not set.
+- The Jira cloud uses OAuth (cleaner than API tokens for long-lived setups).
+- You want to avoid shell-quoting issues with ADF JSON.
+
+**Equivalent MCP calls:**
+
+| curl operation | MCP tool |
+|---|---|
+| `POST /rest/api/3/issue` (create) | `mcp__atlassian__createJiraIssue` |
+| `PUT /rest/api/3/issue/{key}` (edit) | `mcp__atlassian__editJiraIssue` |
+| `GET /rest/api/3/issue/{key}` | `mcp__atlassian__getJiraIssue` |
+| `POST /rest/api/3/issue/{key}/transitions` | `mcp__atlassian__transitionJiraIssue` |
+| `GET /rest/api/3/issue/{key}/transitions` | `mcp__atlassian__getTransitionsForJiraIssue` |
+| `GET /rest/api/3/search?jql=...` | `mcp__atlassian__searchJiraIssuesUsingJql` |
+
+**Cloud ID:** the first MCP call should discover the cloud ID once: `mcp__atlassian__getAccessibleAtlassianResources` returns the site UUID. Cache in `data/jira-config.json` under `cloudId`.
+
+**Default strategy:** prefer `curl` when env vars are present (no session dependency, scriptable). Fall back to MCP when env vars are missing or curl fails with auth errors. Both paths are idempotent per the rules above.
 
 </process>

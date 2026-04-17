@@ -50,6 +50,12 @@ Jira integration for [GSD (Get Shit Done)](https://github.com/gsd-build/get-shit
    python3 scripts/enrich-cards.py            # Execute
    ```
 
+7. Install git hooks so every commit auto-prefixes the active Jira key:
+   ```
+   /jira-install-git-hooks        # Current repo
+   /jira-install-git-hooks --all  # Every detected GSD repo
+   ```
+
 ## Skills
 
 | Skill | Description |
@@ -57,6 +63,7 @@ Jira integration for [GSD (Get Shit Done)](https://github.com/gsd-build/get-shit
 | `/jira-sync` | Incremental event-based sync. Processes `data/jira-queue.json` and creates/updates/transitions Jira cards. |
 | `/jira-seed` | One-time full population. Reads all `.planning/` artifacts and creates the complete card hierarchy in Jira. |
 | `/jira-setup-kanban` | Automated Kanban board setup. Creates statuses, configures columns, and sets WIP limits. |
+| `/jira-install-git-hooks` | Install `prepare-commit-msg` + `commit-msg` hooks that auto-prefix commits with the active phase/plan Jira key. |
 
 ## Kanban Board
 

@@ -24,6 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { findProjectRoot, detectRepo, readFileSafe, slugify } = require('./lib/path-utils');
 
 const PROJECT_ROOT = findProjectRoot();
 const QUEUE_PATH = path.join(PROJECT_ROOT, 'data', 'jira-queue.json');
@@ -320,65 +321,6 @@ function updateCache(repo, roadmapContent) {
 }
 
 // --- Helpers ---
-
-function findProjectRoot() {
-  // Walk up from CWD looking for a directory containing src/*/.planning/ or .planning/ directly
-  let dir = process.cwd();
-  for (let i = 0; i < 10; i++) {
-    // Check for .planning/ directly in this directory
-    if (fs.existsSync(path.join(dir, '.planning'))) {
-      return dir;
-    }
-    // Check for src/*/.planning/ pattern
-    const srcDir = path.join(dir, 'src');
-    if (fs.existsSync(srcDir)) {
-      try {
-        const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            if (fs.existsSync(path.join(srcDir, entry.name, '.planning'))) {
-              return dir;
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  // Fallback: use env variable
-  return process.env.GSD_PROJECT_ROOT || process.cwd();
-}
-
-function detectRepo(filePath) {
-  // Extract repo name from path: src/{repo}/.planning/...
-  const srcMatch = filePath.match(/\/src\/([^/]+)\//);
-  if (srcMatch) return srcMatch[1];
-
-  // If .planning/ is at project root, use directory name
-  const planningMatch = filePath.match(/\/([^/]+)\/.planning\//);
-  if (planningMatch) return planningMatch[1];
-
-  return null;
-}
-
-function readFileSafe(filePath) {
-  try {
-    return fs.readFileSync(filePath, 'utf-8');
-  } catch {
-    return null;
-  }
-}
-
-function slugify(str) {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 function now() {
   return new Date().toISOString();

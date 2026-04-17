@@ -1,6 +1,6 @@
 {
   "name": "claude-gsd-jira-plugin",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Sync GSD workflow state to Jira — automatic card creation, status transitions, and Kanban board management",
   "author": {
     "name": "Thiago Dumorro",

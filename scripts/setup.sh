@@ -1,6 +1,21 @@
 #!/bin/bash
 # claude-gsd-jira-plugin setup
-# Validates environment, tests Jira connection, discovers configuration
+# Validates environment, tests Jira connection, discovers configuration.
+#
+# Flags:
+#   --install-git-hooks   After validation, install prepare-commit-msg +
+#                         commit-msg hooks in every detected GSD repo so
+#                         every commit carries the active Jira issue key.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_HOOKS=0
+for arg in "$@"; do
+  case "$arg" in
+    --install-git-hooks) INSTALL_HOOKS=1 ;;
+  esac
+done
 
 echo "=== claude-gsd-jira-plugin setup ==="
 
@@ -52,7 +67,25 @@ else
 fi
 
 echo ""
+if [ "$INSTALL_HOOKS" = "1" ]; then
+  echo "Installing git commit-msg hooks for traceability..."
+  if ls src/*/.planning/ROADMAP.md 1>/dev/null 2>&1; then
+    for f in src/*/.planning/ROADMAP.md; do
+      repo_dir=$(dirname "$(dirname "$f")")
+      # src/<repo>/.planning/ROADMAP.md -> src/<repo>
+      if [ -d "${repo_dir}/.git" ]; then
+        bash "${SCRIPT_DIR}/install-git-hooks.sh" "${repo_dir}"
+      fi
+    done
+  fi
+  if [ -d "./.git" ]; then
+    bash "${SCRIPT_DIR}/install-git-hooks.sh" "$PWD"
+  fi
+  echo ""
+fi
+
 echo "Setup complete. Next steps:"
-echo "  1. /jira-setup-kanban    # Configure Kanban board"
-echo "  2. /jira-seed --dry-run  # Preview card creation"
-echo "  3. /jira-seed            # Create cards in Jira"
+echo "  1. /jira-setup-kanban         # Configure Kanban board"
+echo "  2. /jira-seed --dry-run       # Preview card creation"
+echo "  3. /jira-seed                 # Create cards in Jira"
+echo "  4. /jira-install-git-hooks    # Prefix commits with Jira keys (or rerun setup.sh --install-git-hooks)"

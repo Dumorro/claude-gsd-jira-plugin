@@ -1,0 +1,20 @@
+{
+  "name": "gsd-jira-local",
+  "owner": {
+    "name": "Thiago Dumorro",
+    "url": "https://github.com/Dumorro"
+  },
+  "plugins": [
+    {
+      "name": "claude-gsd-jira-plugin",
+      "source": "./",
+      "description": "Sync GSD workflow state to Jira — automatic card creation, status transitions, and Kanban board management",
+      "version": "1.2.0",
+      "author": {
+        "name": "Thiago Dumorro"
+      },
+      "category": "automation",
+      "keywords": ["gsd", "jira", "kanban"]
+    }
+  ]
+}
