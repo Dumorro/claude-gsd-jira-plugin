@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0] - 2026-04-18
+
+Autonomous-mode support. `/gsd-autonomous` roda dezenas de transições sem intervenção humana; sem flush automático, a fila `data/jira-queue.json` acumulava por horas e o quadro Kanban ficava estático. Esta release adiciona um drain leve disparado no fim de cada sessão e um atalho pra rodar `/jira-sync` em loop paralelo.
+
+### Added
+- **`hooks/gsd-jira-drain.js`** — script Node que processa apenas eventos de transição (`phase_planning`, `phase_ready`, `phase_executing`, `phase_verifying`, `phase_verified:passed`, `phase_completed`, `milestone_completed`) chamando a REST API do Jira diretamente, sem roundtrip pelo Claude. Eventos de criação (`milestone_created`, `phase_added`, `plans_created`) ficam deferidos na fila pro `/jira-sync` rico (que monta ADF descriptions). Resolve `phase_number + repo → PIB-XXX` via `data/jira-mapping.json`. Silent no-op se faltarem env vars (`JIRA_HOST/USERNAME/API_TOKEN`).
+- **`hooks/hooks.json` Stop hook** — registra o drain pra rodar ao encerrar qualquer sessão Claude (timeout 30s, `|| true` pra não travar o exit).
+- **`commands/jira-sync-loop.md`** — slash command `/jira-sync-loop [interval]` que dispara `/loop 10m /jira-sync` (ou intervalo customizado). Atalho pro workflow paralelo usado com `/gsd-autonomous`.
+
+### Workflow recomendado com `/gsd-autonomous`
+1. Aba paralela: `/jira-sync-loop` (drena fila completa, inclusive creations, a cada 10 min).
+2. Aba principal: `/gsd-autonomous --from N`.
+3. No encerramento, o Stop hook drena transições residuais automaticamente.
+
 ## [1.2.1] - 2026-04-17
 
 Post-Phase 44 re-verification patch. Plan `44-08-PLAN.md` (gap-closure G-05) surfaced a parser bug: the `plans_created` event landed in the queue with `phase: "unknown"` and `plan: "01"`, causing `/jira-sync` to skip subtask creation.
