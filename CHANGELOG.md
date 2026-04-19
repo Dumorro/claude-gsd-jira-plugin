@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1] - 2026-04-19
+
+Cost/latency optimization. `/jira-sync` roda em loop (a cada 10 min durante `/gsd-autonomous`) — pinning o skill em Haiku 4.5 corta custo ~10x e latência ~3x sem comprometer qualidade pro tipo de trabalho do skill (parsing estruturado, montagem de ADF, chamadas REST).
+
+### Changed
+- **`skills/jira-sync/SKILL.md`** — adicionado `model: claude-haiku-4-5-20251001` no frontmatter. O skill agora roda em Haiku independente do modelo da conversa. Transições continuam no `gsd-jira-drain.js` (Node puro, sem modelo). Quando precisar re-scan completo ou debug, rodar em Opus via override explícito.
+
 ## [1.3.0] - 2026-04-18
 
 Autonomous-mode support. `/gsd-autonomous` roda dezenas de transições sem intervenção humana; sem flush automático, a fila `data/jira-queue.json` acumulava por horas e o quadro Kanban ficava estático. Esta release adiciona um drain leve disparado no fim de cada sessão e um atalho pra rodar `/jira-sync` em loop paralelo.

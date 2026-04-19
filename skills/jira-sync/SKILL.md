@@ -2,6 +2,7 @@
 name: jira-sync
 description: "Process pending GSD events and sync Jira cards (create/update epics, features, subtasks)"
 argument-hint: "--dry-run | --full | --status"
+model: claude-haiku-4-5-20251001
 allowed-tools:
   - Read
   - Write
